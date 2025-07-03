@@ -9,7 +9,7 @@ document.querySelector('#app').innerHTML = `
         <button class="btn" id="newBrowserBtn">新建浏览器</button>
         <button class="btn" id="getCookieBtn">获取Cookie</button>
       </div>
-      <div class="cookie-display" id="cookieDisplay">
+      <div class="cookie-display visible" id="cookieDisplay">
         <div class="input-group">
           <input class="input" id="cookieInput" type="text" readonly placeholder="这里将显示Cookie" />
           <button class="copy-btn" id="copyBtn" title="复制Cookie">复制</button>
@@ -32,26 +32,15 @@ document.getElementById("newBrowserBtn").addEventListener("click", function() {
 
 // 设置"获取Cookie"按钮的事件处理
 document.getElementById("getCookieBtn").addEventListener("click", function() {
-  // 切换cookie展示区域的显示状态
-  const cookieDisplay = document.getElementById("cookieDisplay");
-  
-  if (!cookieDisplay.classList.contains('visible')) {
-    // 显示cookie区域
-    cookieDisplay.classList.add('visible');
-    
-    // 获取cookie
-    GetCookie()
-      .then((result) => {
-        document.getElementById("cookieInput").value = result;
-      })
-      .catch((err) => {
-        console.error(err);
-        document.getElementById("cookieInput").value = "获取Cookie失败";
-      });
-  } else {
-    // 隐藏cookie区域
-    cookieDisplay.classList.remove('visible');
-  }
+  // 直接获取cookie，不切换显示状态
+  GetCookie()
+    .then((result) => {
+      document.getElementById("cookieInput").value = result;
+    })
+    .catch((err) => {
+      console.error(err);
+      document.getElementById("cookieInput").value = "获取Cookie失败";
+    });
 });
 
 // 设置"复制"按钮的事件处理
