@@ -57,18 +57,38 @@ jobs:
           GOOS: ${{ matrix.build.platform }}
           GOARCH: ${{ matrix.build.arch }}
         run: |
+          # Ensure build directory exists
+          mkdir -p build/bin
+          
           if [ "${{ matrix.build.platform }}" = "darwin" ] && [ "${{ matrix.build.arch }}" = "arm64" ] && [ "${{ runner.os }}" = "macOS" ]; then
-            wails build -platform darwin/arm64
+            wails build -platform darwin/arm64 -o Gookie
           else
-            wails build
+            wails build -o Gookie
           fi
+        shell: bash
 
       - name: Rename binary
         run: |
           if [ "${{ matrix.build.platform }}" = "windows" ]; then
-            mv build/bin/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
+            if [ -f "build/bin/Gookie.exe" ]; then
+              mv build/bin/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
+            else
+              echo "Windows binary not found at expected location"
+              find build -name "*.exe" -type f
+              exit 1
+            fi
           else
-            mv build/bin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
+            # For macOS/Linux builds
+            if [ -f "build/bin/Gookie" ]; then
+              mv build/bin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
+            elif [ -f "build/darwin/Gookie" ] && [ "${{ matrix.build.platform }}" = "darwin" ]; then
+              # Special case for macOS builds that might output to different directory
+              mv build/darwin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
+            else
+              echo "Binary not found at expected location for ${{ matrix.build.platform }}"
+              find build -type f -not -path "*/\.*" | grep -v "\.html$\|\.js$\|\.css$"
+              exit 1
+            fi
           fi
         shell: bash
 
@@ -76,8 +96,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Gookie-${{ matrix.build.name }}
-          path: build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}*
-          if-no-files-found: error
+          path: |
+            build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}*
+            build/bin/Gookie*
+          if-no-files-found: warn
 
   release:
     needs: build
