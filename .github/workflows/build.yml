@@ -69,20 +69,52 @@ jobs:
           # Ensure build directory exists
           mkdir -p build/bin
           
-          if [ "${{ matrix.build.platform }}" = "darwin" ] && [ "${{ matrix.build.arch }}" = "arm64" ] && [ "${{ runner.os }}" = "macOS" ]; then
-            wails build -platform darwin/arm64 -o Gookie
+          echo "Building for platform=${{ matrix.build.platform }} arch=${{ matrix.build.arch }}"
+          
+          if [ "${{ matrix.build.platform }}" = "windows" ]; then
+            echo "Building for Windows..."
+            wails build -platform windows/amd64
+          elif [ "${{ matrix.build.platform }}" = "darwin" ] && [ "${{ matrix.build.arch }}" = "arm64" ] && [ "${{ runner.os }}" = "macOS" ]; then
+            echo "Building for macOS ARM64..."
+            wails build -platform darwin/arm64
+          elif [ "${{ matrix.build.platform }}" = "darwin" ] && [ "${{ matrix.build.arch }}" = "amd64" ]; then
+            echo "Building for macOS AMD64..."
+            wails build -platform darwin/amd64
+          elif [ "${{ matrix.build.platform }}" = "linux" ]; then
+            echo "Building for Linux..."
+            wails build -platform linux/amd64
           else
-            wails build -o Gookie
+            echo "Using default build settings..."
+            wails build
+          fi
+          
+          echo "Build complete. Listing output directory:"
+          ls -la build
+          
+          if [ -d "build/bin" ]; then
+            echo "Contents of build/bin:"
+            ls -la build/bin
           fi
         shell: bash
 
       - name: Rename binary
         run: |
+          echo "Platform: ${{ matrix.build.platform }}, Architecture: ${{ matrix.build.arch }}"
+          echo "Listing all files in build directory:"
+          find build -type f | sort
+          
           if [ "${{ matrix.build.platform }}" = "windows" ]; then
+            echo "Processing Windows build..."
             if [ -f "build/bin/Gookie.exe" ]; then
+              echo "Found binary at build/bin/Gookie.exe"
               mv build/bin/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
+            elif [ -f "build/windows/Gookie.exe" ]; then
+              echo "Found binary at build/windows/Gookie.exe"
+              mkdir -p build/bin
+              mv build/windows/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
             else
-              echo "Windows binary not found at expected location"
+              echo "Windows binary not found at expected locations"
+              echo "Searching for .exe files:"
               find build -name "*.exe" -type f
               exit 1
             fi
@@ -123,6 +155,8 @@ jobs:
           path: |
             build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}*
             build/bin/Gookie*
+            build/windows/*.exe
+            build/darwin/*
           if-no-files-found: warn
 
   release:
