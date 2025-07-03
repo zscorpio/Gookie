@@ -80,19 +80,34 @@ jobs:
         run: |
           if [ "${{ matrix.build.platform }}" = "windows" ]; then
             if [ -f "build/bin/Gookie.exe" ]; then
-            mv build/bin/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
+              mv build/bin/Gookie.exe build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}.exe
             else
               echo "Windows binary not found at expected location"
               find build -name "*.exe" -type f
               exit 1
             fi
-          else
-            # For macOS/Linux builds
-            if [ -f "build/bin/Gookie" ]; then
-            mv build/bin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
-            elif [ -f "build/darwin/Gookie" ] && [ "${{ matrix.build.platform }}" = "darwin" ]; then
-              # Special case for macOS builds that might output to different directory
+          elif [ "${{ matrix.build.platform }}" = "darwin" ]; then
+            # For macOS builds, check for app bundle
+            if [ -d "build/bin/Gookie.app" ]; then
+              # First, copy the executable out of the app bundle
+              cp "build/bin/Gookie.app/Contents/MacOS/Gookie" "build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}"
+              # Then create a zip of the entire app bundle
+              cd build/bin
+              zip -r "Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}-app.zip" Gookie.app || echo "Warning: zip failed but continuing"
+              cd ../..
+            elif [ -f "build/bin/Gookie" ]; then
+              mv build/bin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
+            elif [ -f "build/darwin/Gookie" ]; then
               mv build/darwin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
+            else
+              echo "Binary not found at expected location for ${{ matrix.build.platform }}"
+              find build -type f -not -path "*/\.*" | grep -v "\.html$\|\.js$\|\.css$"
+              exit 1
+            fi
+          else
+            # For Linux builds
+            if [ -f "build/bin/Gookie" ]; then
+              mv build/bin/Gookie build/bin/Gookie-${{ matrix.build.platform }}-${{ matrix.build.arch }}
             else
               echo "Binary not found at expected location for ${{ matrix.build.platform }}"
               find build -type f -not -path "*/\.*" | grep -v "\.html$\|\.js$\|\.css$"
