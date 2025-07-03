@@ -34,11 +34,11 @@ document.getElementById("newBrowserBtn").addEventListener("click", function() {
 document.getElementById("getCookieBtn").addEventListener("click", function() {
   // 直接获取cookie，不切换显示状态
   GetCookie()
-    .then((result) => {
+            .then((result) => {
       document.getElementById("cookieInput").value = result;
-    })
-    .catch((err) => {
-      console.error(err);
+            })
+            .catch((err) => {
+                console.error(err);
       document.getElementById("cookieInput").value = "获取Cookie失败";
     });
 });
@@ -70,8 +70,8 @@ document.getElementById("copyBtn").addEventListener("click", function() {
       .catch(err => {
         console.error('复制失败:', err);
         alert("复制失败，请手动复制");
-      });
-  } catch (err) {
+            });
+    } catch (err) {
     // 如果浏览器不支持clipboard API，使用传统方式
     document.execCommand('copy');
     
@@ -86,5 +86,5 @@ document.getElementById("copyBtn").addEventListener("click", function() {
       copyBtn.textContent = originalText;
       copyBtn.classList.remove("copied");
     }, 1500);
-  }
+    }
 });
