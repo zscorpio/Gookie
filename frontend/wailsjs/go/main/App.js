@@ -6,6 +6,14 @@ export function CreateBrowser() {
   return window['go']['main']['App']['CreateBrowser']();
 }
 
+export function GetChromePath() {
+  return window['go']['main']['App']['GetChromePath']();
+}
+
 export function GetCookie() {
   return window['go']['main']['App']['GetCookie']();
+}
+
+export function SetChromePath(arg1) {
+  return window['go']['main']['App']['SetChromePath'](arg1);
 }

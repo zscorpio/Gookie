@@ -3,4 +3,8 @@
 
 export function CreateBrowser():Promise<string>;
 
+export function GetChromePath():Promise<string>;
+
 export function GetCookie():Promise<string>;
+
+export function SetChromePath(arg1:string):Promise<string>;

@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"runtime"
+	"strings"
 
 	"github.com/playwright-community/playwright-go"
 )
@@ -14,19 +17,86 @@ type App struct {
 	pw            *playwright.Playwright
 	browser       playwright.Browser
 	page          playwright.Page
+	chromePath    string // 存储Chrome浏览器路径
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{
 		browserActive: false,
+		chromePath:    getDefaultChromePath(), // 设置默认路径
 	}
+}
+
+// 获取不同操作系统下Chrome浏览器的默认路径
+func getDefaultChromePath() string {
+	switch runtime.GOOS {
+	case "windows":
+		// Windows常见的Chrome路径
+		paths := []string{
+			"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+			"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+			"%LOCALAPPDATA%\\Google\\Chrome\\Application\\chrome.exe",
+		}
+		for _, path := range paths {
+			// 简单替换环境变量
+			if strings.Contains(path, "%LOCALAPPDATA%") {
+				localAppData := os.Getenv("LOCALAPPDATA")
+				path = strings.Replace(path, "%LOCALAPPDATA%", localAppData, 1)
+			}
+			if _, err := os.Stat(path); err == nil {
+				return path
+			}
+		}
+	case "darwin":
+		// macOS Chrome路径
+		return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+	case "linux":
+		// Linux常见的Chrome路径
+		paths := []string{
+			"/usr/bin/google-chrome",
+			"/usr/bin/google-chrome-stable",
+			"/usr/bin/chrome",
+			"/usr/bin/chromium-browser",
+		}
+		for _, path := range paths {
+			if _, err := os.Stat(path); err == nil {
+				return path
+			}
+		}
+	}
+	return "" // 如果找不到默认路径，返回空字符串
+}
+
+// SetChromePath 设置Chrome浏览器的路径
+func (a *App) SetChromePath(path string) string {
+	if _, err := os.Stat(path); err != nil {
+		return "无效的Chrome路径，文件不存在: " + path
+	}
+	
+	a.chromePath = path
+	return "已成功设置Chrome路径: " + path
+}
+
+// GetChromePath 获取当前设置的Chrome浏览器路径
+func (a *App) GetChromePath() string {
+	if a.chromePath == "" {
+		return "未设置Chrome路径，系统将尝试使用默认路径"
+	}
+	return a.chromePath
 }
 
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	
+	// 记录当前的Chrome路径配置
+	if a.chromePath != "" {
+		log.Printf("应用启动：使用Chrome路径: %s", a.chromePath)
+	} else {
+		log.Println("应用启动：未指定Chrome路径，将使用系统默认Chrome或channel方式启动")
+	}
 }
 
 // CreateBrowser 创建一个新的浏览器实例
@@ -55,21 +125,40 @@ func (a *App) CreateBrowser() string {
 	pw, err := playwright.Run()
 	if err != nil {
 		log.Printf("初始化Playwright失败: %v", err)
+		
+		// 提供更友好的错误信息
+		if runtime.GOOS == "windows" {
+			return "启动浏览器失败：请确保已安装Playwright驱动。\n可以通过以下步骤手动安装：\n1. 打开命令提示符\n2. 运行命令：npx playwright install --with-deps chromium\n\n详细错误：" + err.Error()
+		}
 		return "启动浏览器失败: " + err.Error()
 	}
 	a.pw = pw
 
-	// 启动系统Chrome浏览器
+	// 设置启动选项
 	launchOptions := playwright.BrowserTypeLaunchOptions{
-		Channel: playwright.String("chrome"), // 使用系统Chrome浏览器
-		Headless: playwright.Bool(false),     // 非无头模式，可以看到浏览器界面
+		Headless: playwright.Bool(false), // 非无头模式，可以看到浏览器界面
+	}
+	
+	// 如果指定了Chrome路径，则使用executablePath
+	if a.chromePath != "" {
+		log.Printf("使用指定的Chrome路径: %s", a.chromePath)
+		launchOptions.ExecutablePath = playwright.String(a.chromePath)
+	} else {
+		// 如果没有指定路径，则尝试使用系统Chrome
+		log.Println("未指定Chrome路径，尝试使用系统Chrome")
+		launchOptions.Channel = playwright.String("chrome")
 	}
 
+	// 启动浏览器
 	browser, err := pw.Chromium.Launch(launchOptions)
 	if err != nil {
 		log.Printf("启动Chrome浏览器失败: %v", err)
 		pw.Stop()
-		return "启动浏览器失败: " + err.Error()
+		
+		if a.chromePath != "" {
+			return "启动Chrome浏览器失败: 指定的路径可能不正确: " + a.chromePath + "\n错误详情: " + err.Error()
+		}
+		return "启动Chrome浏览器失败: " + err.Error() + "\n请尝试使用SetChromePath方法手动指定Chrome路径"
 	}
 	a.browser = browser
 
