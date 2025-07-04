@@ -12,9 +12,9 @@ jobs:
       matrix:
         build: [
           {name: windows, os: windows-latest, platform: windows, arch: amd64},
-          {name: macos-amd64, os: macos-latest, platform: darwin, arch: amd64},
-          {name: macos-arm64, os: macos-latest, platform: darwin, arch: arm64},
-          {name: linux-amd64, os: ubuntu-latest, platform: linux, arch: amd64},
+          # {name: macos-amd64, os: macos-latest, platform: darwin, arch: amd64},
+          # {name: macos-arm64, os: macos-latest, platform: darwin, arch: arm64},
+          # {name: linux-amd64, os: ubuntu-latest, platform: linux, arch: amd64},
         ]
     runs-on: ${{ matrix.build.os }}
     steps:
