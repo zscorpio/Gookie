@@ -82,27 +82,6 @@ jobs:
             wails build -platform darwin/amd64
           elif [ "${{ matrix.build.platform }}" = "linux" ]; then
             echo "Building for Linux..."
-            # Check Ubuntu version for correct WebKit package
-            . /etc/os-release
-            echo "Ubuntu version: $VERSION_ID"
-            if [[ "$VERSION_ID" == "22.04" || "$VERSION_ID" > "22.04" ]]; then
-              # For Ubuntu 22.04+, we need to use webkit2gtk-4.1
-              echo "Configuring for WebKit 4.1..."
-              export PKG_CONFIG_PATH="/usr/lib/pkgconfig"
-              # Use sed to create a temporary pkg-config file that redirects webkit2gtk-4.0 to webkit2gtk-4.1
-              mkdir -p $HOME/.pkgconfig
-              cat > $HOME/.pkgconfig/webkit2gtk-4.0.pc << EOF
-# Proxy webkit2gtk-4.0 to webkit2gtk-4.1
-Name: webkit2gtk-4.0
-Description: Legacy webkit2gtk-4.0 proxy to webkit2gtk-4.1
-Version: 4.0.0
-Requires: webkit2gtk-4.1
-Cflags: \`pkg-config --cflags webkit2gtk-4.1\`
-Libs: \`pkg-config --libs webkit2gtk-4.1\`
-EOF
-              export PKG_CONFIG_PATH="$HOME/.pkgconfig:$PKG_CONFIG_PATH"
-              pkg-config --exists webkit2gtk-4.0 && echo "webkit2gtk-4.0 config found!" || echo "webkit2gtk-4.0 config NOT found"
-            fi
             wails build -platform linux/amd64
           else
             echo "Using default build settings..."
